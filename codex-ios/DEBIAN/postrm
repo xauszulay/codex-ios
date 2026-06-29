@@ -1,0 +1,41 @@
+#!/var/jb/bin/sh
+# postrm — Codex CLI for iOS (Procursus / Dopamine)
+# Runs after removal. Only purges config when dpkg is invoked with --purge.
+
+set -e
+
+CODEX_HOME="/var/jb/usr/local/lib/codex"
+CODEX_CFG="/var/jb/var/mobile/.codex"
+PREF_DIR="/var/jb/Library/PreferenceLoader/Preferences"
+BUNDLE_DIR="/var/jb/Library/PreferenceBundles/CodexPrefs.bundle"
+
+# On upgrade / failed-upgrade, dpkg has already replaced the package files;
+# do NOT touch them here, otherwise the freshly unpacked engine and prefs
+# bundle get wiped (dpkg runs the OLD postrm with "upgrade" AFTER unpacking
+# the new version). Only clean up on real removal.
+if [ "$1" != "upgrade" ] && [ "$1" != "failed-upgrade" ]; then
+    # 1. Remove the lib directory if dpkg left anything behind (e.g. conffiles).
+    if [ -d "$CODEX_HOME" ]; then
+        rm -rf "$CODEX_HOME" 2>/dev/null || true
+    fi
+
+    # 2. Remove the Settings.app pane entry + icons (shipped by this package).
+    for f in CodexIOS.plist codex.png codex@2x.png codex@3x.png; do
+        rm -f "$PREF_DIR/$f" 2>/dev/null || true
+    done
+
+    # 2b. Remove the compiled preference bundle (shipped by this package).
+    if [ -d "$BUNDLE_DIR" ]; then
+        rm -rf "$BUNDLE_DIR" 2>/dev/null || true
+    fi
+fi
+
+# 3. On --purge, drop user config too. dpkg passes "purge" as $1.
+if [ "$1" = "purge" ] && [ -d "$CODEX_CFG" ]; then
+    echo "Purging Codex config at $CODEX_CFG …"
+    rm -rf "$CODEX_CFG" 2>/dev/null || true
+    # Also drop the Settings.app preferences domain file.
+    rm -f /var/jb/var/mobile/Library/Preferences/com.openai.codex-ios.plist 2>/dev/null || true
+fi
+
+exit 0

@@ -1,0 +1,126 @@
+#!/var/jb/bin/sh
+# postinst — Codex CLI for iOS (Procursus / Dopamine)
+# Runs after the package is unpacked onto the rootfs.
+
+set -e
+
+CODEX_HOME="/var/jb/usr/local/lib/codex"
+BIN_LINK="/var/jb/usr/local/bin/codex"
+AUTH_LINK="/var/jb/usr/local/bin/codex-auth"
+NODE_BIN="$CODEX_HOME/node"
+
+echo ""
+echo "=========================================="
+echo "  Codex CLI for iOS — post-install"
+echo "=========================================="
+
+# 1. Make sure the wrapper and auth scripts are executable.
+chmod 0755 "$BIN_LINK" 2>/dev/null || true
+chmod 0755 "$AUTH_LINK" 2>/dev/null || true
+
+# 2. Make the native engine and bundled runtime executable.
+if [ -f "$CODEX_HOME/codex-ios" ]; then
+    chmod 0755 "$CODEX_HOME/codex-ios"
+fi
+if [ -f "$NODE_BIN" ]; then
+    chmod 0755 "$NODE_BIN"
+fi
+chmod 0755 "$CODEX_HOME"/*.mjs 2>/dev/null || true
+[ -f "$CODEX_HOME/segmenter-shim.cjs" ] && chmod 0644 "$CODEX_HOME/segmenter-shim.cjs"
+
+# 3. Ownership — match the rest of /var/jb/usr/local (mobile:mobile), like Claude Code.
+if command -v chown >/dev/null 2>&1; then
+    chown -R mobile:mobile "$CODEX_HOME" 2>/dev/null || true
+    chown mobile:mobile "$BIN_LINK" "$AUTH_LINK" 2>/dev/null || true
+fi
+
+# 4. Codex config directory. Hardcode the mobile home — dpkg runs postinst
+#    as root with HOME=/root, so ${HOME:-...} would land in /root/.codex.
+CODEX_CFG="/var/jb/var/mobile/.codex"
+mkdir -p "$CODEX_CFG"
+chmod 0700 "$CODEX_CFG" 2>/dev/null || true
+# Hand the dir to mobile so codex runs without root.
+if command -v chown >/dev/null 2>&1; then
+    chown -R mobile:mobile "$CODEX_CFG" 2>/dev/null || true
+fi
+
+# 5. Entitlements blob — kept next to the binary for reference / ldid use.
+if [ -f "$CODEX_HOME/entitlements.xml" ]; then
+    chmod 0644 "$CODEX_HOME/entitlements.xml"
+fi
+
+# 5b. Settings.app pane (PreferenceLoader). Entry plist + icons live next to
+#     the other tweaks' entries and must be root:wheel to match.
+PREF_DIR="/var/jb/Library/PreferenceLoader/Preferences"
+if [ -d "$PREF_DIR" ]; then
+    chmod 0644 "$PREF_DIR/CodexIOS.plist" "$PREF_DIR"/codex.png "$PREF_DIR"/codex@2x.png "$PREF_DIR"/codex@3x.png 2>/dev/null || true
+    if command -v chown >/dev/null 2>&1; then
+        chown root:wheel "$PREF_DIR/CodexIOS.plist" "$PREF_DIR"/codex.png "$PREF_DIR"/codex@2x.png "$PREF_DIR"/codex@3x.png 2>/dev/null || true
+    fi
+fi
+
+# 5d. Compiled preference bundle (CodexPrefs.bundle). Contains the
+#     CodexPrefsController dylib that hosts the Settings pane and implements
+#     the action buttons (Open Config Folder / Open Logs / Reset
+#     Authentication / Run Diagnostics / open.ai link). Must be root:wheel
+#     and ad-hoc signed so Preferences.app loads it.
+BUNDLE_DIR="/var/jb/Library/PreferenceBundles/CodexPrefs.bundle"
+if [ -d "$BUNDLE_DIR" ]; then
+    # Drop the build-time PLACEHOLDER if a real build was shipped.
+    rm -f "$BUNDLE_DIR/PLACEHOLDER" 2>/dev/null || true
+    chmod 0755 "$BUNDLE_DIR"
+    chmod 0644 "$BUNDLE_DIR"/CodexPrefs.plist "$BUNDLE_DIR"/Info.plist 2>/dev/null || true
+    chmod 0755 "$BUNDLE_DIR/CodexPrefs" 2>/dev/null || true
+    if command -v chown >/dev/null 2>&1; then
+        chown -R root:wheel "$BUNDLE_DIR" 2>/dev/null || true
+    fi
+    # Ad-hoc sign the dylib with ldid so Preferences.app accepts it.
+    if command -v ldid >/dev/null 2>&1 && [ -f "$BUNDLE_DIR/CodexPrefs" ]; then
+        ldid -S "$BUNDLE_DIR/CodexPrefs" 2>/dev/null || true
+    fi
+fi
+
+# 5c. Package icon shown by Sileo/Zebra in the package list and detail view.
+#     Sileo reads the Icon: URL from DEBIAN/control, but a local fallback is
+#     shipped under the standard MobileSubstrate Icons path as well.
+SILEO_ICON_DIR="/var/jb/Library/MobileSubstrate/Icons"
+if [ -d "$SILEO_ICON_DIR" ] && [ -f "$SILEO_ICON_DIR/codex-sileo.png" ]; then
+    chmod 0644 "$SILEO_ICON_DIR/codex-sileo.png" 2>/dev/null || true
+    if command -v chown >/dev/null 2>&1; then
+        chown root:wheel "$SILEO_ICON_DIR/codex-sileo.png" 2>/dev/null || true
+    fi
+fi
+
+# 6. Try to (re)sign the native binary with ldid if present. Dopamine/Procursus
+#    ships binaries that are already signed, but a self-built iOS binary may
+#    need an ad-hoc signature + entitlements to escape the iOS sandbox and to
+#    get the JIT/unsigned-memory rights the TUI may want.
+if command -v ldid >/dev/null 2>&1 && [ -f "$CODEX_HOME/codex-ios" ]; then
+    echo "Applying entitlements with ldid…"
+    ldid -S"$CODEX_HOME/entitlements.xml" "$CODEX_HOME/codex-ios" 2>/dev/null || \
+        ldid -S "$CODEX_HOME/codex-ios" 2>/dev/null || true
+fi
+
+# 7. Sanity check: warn (do not fail) if the native binary is missing. The
+#    package can still be installed and the wrapper will print a clear error.
+if [ ! -x "$CODEX_HOME/codex-ios" ]; then
+    echo ""
+    echo "WARNING: native engine $CODEX_HOME/codex-ios is missing or not executable."
+    echo "         The 'codex' command will not work until a aarch64-apple-ios build"
+    echo "         is dropped into $CODEX_HOME. See the README in this package."
+    echo ""
+fi
+
+# 8. Refresh shell command hash (harmless if hash builtin is absent).
+hash -r 2>/dev/null || true
+
+echo ""
+echo "Done. Run 'codex' in NewTerm to start."
+echo "If you have not authenticated yet, run 'codex-auth' first."
+echo "A 'Codex' pane is added to the Settings app (PreferenceLoader) —"
+echo "tweak model, sandbox, approvals, web search and more there, plus"
+echo "action buttons: Open Config Folder, Open Logs, Reset Authentication,"
+echo "Run Diagnostics, and a link to open.ai."
+echo ""
+# Do not exit non-zero from warnings above.
+exit 0

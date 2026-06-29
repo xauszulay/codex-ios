@@ -1,0 +1,155 @@
+#!/var/jb/usr/bin/zsh
+# Codex CLI for iOS (Dopamine / Procursus)
+# Self-contained wrapper — does not depend on PATH, ships its own runtime.
+#
+# Layout:
+#   /var/jb/usr/local/lib/codex/codex-ios          native aarch64-apple-ios Rust engine
+#   /var/jb/usr/local/lib/codex/node               bundled Node 22 (only for auth helper)
+#   /var/jb/usr/local/lib/codex/launcher.mjs       optional JS launcher (kept for parity with npm)
+#   /var/jb/usr/local/lib/codex/segmenter-shim.cjs Intl.Segmenter polyfill (Node helper only)
+#   /var/jb/usr/local/lib/codex/entitlements.xml   ldid entitlements blob
+#
+# The native engine is the primary entry point. Node is only used by
+# codex-auth, mirroring the Claude Code iOS packaging style.
+
+# --- Configuration ---------------------------------------------------------
+CODEX_HOME="/var/jb/usr/local/lib/codex"
+CODEX_BIN="$CODEX_HOME/codex-ios"
+NODE_BIN="$CODEX_HOME/node"
+SHIM="$CODEX_HOME/segmenter-shim.cjs"
+
+# --- Environment -----------------------------------------------------------
+# HOME must be stable regardless of who launches the wrapper (e.g. root via
+# ssh, or mobile via NewTerm). Codex writes to ~/.codex.
+export HOME="${HOME:-/var/jb/var/mobile}"
+
+# TMPDIR: iOS apps get a per-session TMPDIR, but a root ssh shell often does
+# not. Codex/reqwest/tokio need a writable temp dir.
+export TMPDIR="${TMPDIR:-$HOME/.codex/tmp}"
+[ -d "$TMPDIR" ] || mkdir -p "$TMPDIR" 2>/dev/null
+
+# PATH: keep the Procursus tree first so any spawned helper (git, etc.) uses
+# the jailbreak binaries, not the read-only rootfs ones.
+export PATH="/var/jb/usr/local/bin:/var/jb/usr/bin:/var/jb/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+# Locale: NewTerm sets LANG=en_US.UTF-8 but the locale may not be generated.
+# Codex itself (Rust) does not need ICU, but the Node auth helper does, and
+# broken locale crashes some syscalls. Fall back to C safely.
+export LANG="${LANG:-C}"
+export LC_ALL="${LC_ALL:-C}"
+
+# Terminal: Codex TUI uses crossterm + ratatui. NewTerm 3 is xterm-compatible.
+export TERM="${TERM:-xterm-256color}"
+export TERM_PROGRAM="${TERM_PROGRAM:-newterm}"
+
+# Colors: NewTerm 3 supports 256-color + truecolor, but the iOS boot console
+# does not. Let the user override; default to keeping color enabled for the
+# TUI (Codex degrades gracefully). NO_COLOR is NOT forced here, unlike Claude,
+# because the Codex TUI is a real curses app that needs color.
+# export NO_COLOR=1   # intentionally unset
+
+# RUST_LOG: Codex honors this. Default to warn to keep the TUI clean.
+export RUST_LOG="${RUST_LOG:-warn}"
+
+# Codex config root — point the engine at the iOS-stable path.
+export CODEX_HOME_ENV="$HOME/.codex"
+
+# --- Auth bootstrap --------------------------------------------------------
+# Load API key from ~/.codex/credentials if present (same pattern as Claude).
+if [ -f "$HOME/.codex/credentials" ]; then
+    source "$HOME/.codex/credentials" 2>/dev/null
+fi
+
+# --- Settings.app preferences (com.openai.codex-ios) -----------------------
+# Read the PreferenceLoader pane via `defaults`. Each read is independent so a
+# missing/never-touched key simply yields no override (defaults exits 1).
+# Works whether the wrapper is launched as mobile (NewTerm) or root (ssh):
+# `defaults` talks to cfprefsd which reads the mobile user's domain.
+PREF="com.openai.codex-ios"
+_pread() { defaults read "$PREF" "$1" 2>/dev/null; }
+
+# API key from Settings overrides the credentials file if set.
+_pref_apikey="$(_pread apiKey)"
+if [ -n "$_pref_apikey" ]; then
+    export OPENAI_API_KEY="$_pref_apikey"
+fi
+
+# Model override -> -m <model>. Don't clobber an explicit -m the user passed.
+_pref_model="$(_pread model)"
+if [ -n "$_pref_model" ]; then
+    case " $* " in *" -m "*|*" --model "*) : ;; *) set -- -m "$_pref_model" "$@" ;;
+    esac
+fi
+
+# Sandbox policy -> -s <mode>.
+_pref_sandbox="$(_pread sandbox)"
+case "$_pref_sandbox" in
+    read-only|workspace-write|danger-full-access)
+        case " $* " in *" -s "*|*" --sandbox "*) : ;; *) set -- -s "$_pref_sandbox" "$@" ;;
+        esac ;;
+esac
+
+# Approval policy -> -a <policy>.
+_pref_approval="$(_pread approval)"
+case "$_pref_approval" in
+    untrusted|on-request|never)
+        case " $* " in *" -a "*|*" --ask-for-approval "*) : ;; *) set -- -a "$_pref_approval" "$@" ;;
+        esac ;;
+esac
+
+# Boolean toggles. defaults returns 1/0 for bools.
+[ "$(_pread webSearch)" = "1" ] && set -- --search "$@"
+[ "$(_pread noAltScreen)" = "1" ] && set -- --no-alt-screen "$@"
+
+# Feature flags via --enable/--disable (repeatable). fastMode + memories are
+# real codex features (see `codex features list`).
+if [ "$(_pread fastMode)" = "0" ]; then
+    set -- --disable fast_mode "$@"
+fi
+if [ "$(_pread memories)" = "1" ]; then
+    set -- --enable memories "$@"
+fi
+
+# Log level -> RUST_LOG. Priority: explicit user export > Settings pane >
+# the `warn` default set above. We detect "explicit" by checking against our
+# own default string.
+_pref_log="$(_pread logLevel)"
+if [ -n "$_pref_log" ] && [ "$RUST_LOG" = "warn" ]; then
+    export RUST_LOG="$_pref_log"
+fi
+
+# --- Engine selection ------------------------------------------------------
+# Primary: native iOS binary. Fallback: Node launcher (only useful if a
+# working platform binary is present under vendor/, which it normally is not
+# on iOS — kept for debugging).
+USE_NATIVE=1
+if [ ! -x "$CODEX_BIN" ]; then
+    if [ -x "$NODE_BIN" ] && [ -f "$CODEX_HOME/launcher.mjs" ]; then
+        USE_NATIVE=0
+    else
+        echo "Codex CLI for iOS: native engine not found." >&2
+        echo "  Expected: $CODEX_BIN" >&2
+        echo "  Install the aarch64-apple-ios build of Codex into $CODEX_HOME." >&2
+        echo "  See /var/jb/usr/local/share/doc/codex/README.md" >&2
+        exit 127
+    fi
+fi
+
+# --- Launch ----------------------------------------------------------------
+if [ "$USE_NATIVE" = "1" ]; then
+    # Native Rust TUI. No V8 flags needed. Forward all args.
+    exec "$CODEX_BIN" "$@"
+else
+    # Node launcher fallback. Apply the same V8 hardening flags as Claude
+    # Code iOS, because the bundled Node is the same iOS-arm64 build and has
+    # the same WebAssembly / Intl.Segmenter / JIT quirks.
+    exec "$NODE_BIN" \
+        --no-wasm-code-gc \
+        --no-opt \
+        --no-sparkplug \
+        --single-threaded \
+        --liftoff \
+        --no-wasm-tier-up \
+        -r "$SHIM" \
+        "$CODEX_HOME/launcher.mjs" "$@"
+fi

@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"?>
+<!--
+  CodexPrefs.plist — specifiers for the compiled CodexPrefs.bundle.
+
+  Loaded by CodexPrefsController via -[PSListController specifiersFromPlistPath:].
+  This is the authoritative specifier list for the Codex Settings.app pane.
+  The PreferenceLoader ENTRY plist (Library/PreferenceLoader/Preferences/
+  CodexIOS.plist) only points at this bundle + controller; the actual rows
+  live here so they can be edited without recompiling the dylib.
+
+  Keys the user edits are stored in the cfprefsd domain
+  `com.openai.codex-ios` and read at launch by the /var/jb/usr/local/bin/codex
+  wrapper (via `defaults read com.openai.codex-ios <key>`).
+
+  PSButtonCell rows use `action` = <selector> which PreferenceLoader /
+  Preferences.framework resolves against the hosting controller
+  (CodexPrefsController). The matching methods are implemented in
+  CodexPrefsController.m.
+-->
+<plist version="1.0">
+<dict>
+	<key>title</key>
+	<string>Codex</string>
+	<key>items</key>
+	<array>
+		<!-- Header -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Codex CLI for iOS</string>
+			<key>footerText</key>
+			<string>Unofficial iOS port by tg@xauszulay. Settings apply on the next launch of `codex` in NewTerm.</string>
+		</dict>
+
+		<!-- Default model -->
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<string>gpt-5-codex</string>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>model</string>
+			<key>label</key>
+			<string>Default Model</string>
+			<key>validTitles</key>
+			<array>
+				<string>gpt-5-codex</string>
+				<string>gpt-5</string>
+				<string>gpt-5-mini</string>
+				<string>gpt-4.1</string>
+				<string>gpt-4.1-mini</string>
+				<string>o4-mini</string>
+				<string>o3</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>gpt-5-codex</string>
+				<string>gpt-5</string>
+				<string>gpt-5-mini</string>
+				<string>gpt-4.1</string>
+				<string>gpt-4.1-mini</string>
+				<string>o4-mini</string>
+				<string>o3</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<!-- Sandbox mode -->
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<string>workspace-write</string>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>sandbox</string>
+			<key>label</key>
+			<string>Sandbox</string>
+			<key>shortTitles</key>
+			<array>
+				<string>Read-Only</string>
+				<string>Workspace Write</string>
+				<string>Full Access</string>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Read-Only</string>
+				<string>Workspace Write (default)</string>
+				<string>Danger: Full Access</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>read-only</string>
+				<string>workspace-write</string>
+				<string>danger-full-access</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<!-- Approval policy -->
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<string>on-request</string>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>approval</string>
+			<key>label</key>
+			<string>Ask for Approval</string>
+			<key>shortTitles</key>
+			<array>
+				<string>Untrusted</string>
+				<string>On Request</string>
+				<string>Never</string>
+			</array>
+			<key>validTitles</key>
+			<array>
+				<string>Untrusted commands only</string>
+				<string>Model decides (on-request)</string>
+				<string>Never ask</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>untrusted</string>
+				<string>on-request</string>
+				<string>never</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<!-- Toggles group -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Tools &amp; TUI</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>key</key>
+			<string>webSearch</string>
+			<key>label</key>
+			<string>Live Web Search</string>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>key</key>
+			<string>noAltScreen</string>
+			<key>label</key>
+			<string>Inline Mode (no alt screen)</string>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<true/>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>key</key>
+			<string>fastMode</string>
+			<key>label</key>
+			<string>Fast Mode</string>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSSwitchCell</string>
+			<key>default</key>
+			<false/>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>key</key>
+			<string>memories</string>
+			<key>label</key>
+			<string>Memories (experimental)</string>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<!-- Log level group -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Diagnostics</string>
+			<key>footerText</key>
+			<string>RUST_LOG passed to the engine. warn = clean TUI, debug/trace = verbose.</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSLinkListCell</string>
+			<key>default</key>
+			<string>warn</string>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>detail</key>
+			<string>PSListItemsController</string>
+			<key>key</key>
+			<string>logLevel</string>
+			<key>label</key>
+			<string>Log Level</string>
+			<key>validTitles</key>
+			<array>
+				<string>Error</string>
+				<string>Warn</string>
+				<string>Info</string>
+				<string>Debug</string>
+				<string>Trace</string>
+			</array>
+			<key>validValues</key>
+			<array>
+				<string>error</string>
+				<string>warn</string>
+				<string>info</string>
+				<string>debug</string>
+				<string>trace</string>
+			</array>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<!-- Auth group -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Authentication</string>
+			<key>footerText</key>
+			<string>If a key is set here, it overrides ~/.codex/credentials.</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSEditTextCell</string>
+			<key>default</key>
+			<string></string>
+			<key>defaults</key>
+			<string>com.openai.codex-ios</string>
+			<key>key</key>
+			<string>apiKey</string>
+			<key>label</key>
+			<string>OpenAI API Key</string>
+			<key>isPassword</key>
+			<true/>
+			<key>keyboardType</key>
+			<string>alphabet</string>
+			<key>PostNotification</key>
+			<string>com.openai.codex-ios.reload</string>
+		</dict>
+
+		<!-- Actions group: buttons implemented in CodexPrefsController.m -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Maintenance</string>
+			<key>footerText</key>
+			<string>Open Config Folder and Open Logs use the Filza URL scheme (filza://). Install Filza for graphical browsing; otherwise the folder contents are listed inline.</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Open Config Folder</string>
+			<key>action</key>
+			<string>openConfigFolder</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Open Logs</string>
+			<key>action</key>
+			<string>openLogs</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Reset Authentication</string>
+			<key>action</key>
+			<string>resetAuthentication</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Run Diagnostics</string>
+			<key>action</key>
+			<string>runDiagnostics</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Respring</string>
+			<key>action</key>
+			<string>respring</string>
+		</dict>
+
+		<!-- Links group: attribution to upstream OpenAI project -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>Links</string>
+			<key>footerText</key>
+			<string>This is an unofficial port. Codex CLI is developed by OpenAI (github.com/openai/codex, Apache-2.0).</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Open open.ai</string>
+			<key>action</key>
+			<string>openOpenAISite</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSButtonCell</string>
+			<key>label</key>
+			<string>Open upstream repo (openai/codex)</string>
+			<key>action</key>
+			<string>openUpstreamRepo</string>
+		</dict>
+
+		<!-- About group -->
+		<dict>
+			<key>cell</key>
+			<string>PSGroupCell</string>
+			<key>label</key>
+			<string>About</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSStaticTextCell</string>
+			<key>label</key>
+			<string>Version</string>
+			<key>defaultValue</key>
+			<string>0.142.3 (iOS, unofficial port)</string>
+		</dict>
+
+		<dict>
+			<key>cell</key>
+			<string>PSStaticTextCell</string>
+			<key>label</key>
+			<string>Ported by</string>
+			<key>defaultValue</key>
+			<string>tg@xauszulay</string>
+		</dict>
+	</array>
+</dict>
+</plist>

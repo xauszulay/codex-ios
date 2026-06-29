@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"?>
+<!--
+  CodexIOS.plist — PreferenceLoader ENTRY plist.
+
+  This file only registers the pane in the root of the Settings app and points
+  it at the compiled CodexPrefs.bundle. The actual specifier rows (model,
+  sandbox, approval, toggles, log level, API key, action buttons, links, about)
+  live inside the bundle at:
+      /var/jb/Library/PreferenceBundles/CodexPrefs.bundle/CodexPrefs.plist
+  and are loaded by CodexPrefsController (the PSListController subclass that is
+  the bundle's principal class).
+
+  Keys:
+    cell  = PSLinkCell        tappable row in Settings root
+    bundle = CodexPrefs       name of the .bundle in Library/PreferenceBundles
+    detail = CodexPrefsController  principal class of that bundle
+    icon   = codex.png        icon in Library/PreferenceLoader/Preferences/
+    label  = Codex            row title
+-->
+<plist version="1.0">
+<dict>
+	<key>entry</key>
+	<dict>
+		<key>cell</key>
+		<string>PSLinkCell</string>
+		<key>bundle</key>
+		<string>CodexPrefs</string>
+		<key>detail</key>
+		<string>CodexPrefsController</string>
+		<key>icon</key>
+		<string>codex.png</string>
+		<key>isController</key>
+		<true/>
+		<key>label</key>
+		<string>Codex</string>
+	</dict>
+</dict>
+</plist>

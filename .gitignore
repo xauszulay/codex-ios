@@ -1,0 +1,38 @@
+# Large binaries — not in git (GitHub 100 MB file cap, and they are
+# redistributable artifacts, not source). Drop them in by hand before
+# building the deb. See codex-ios/var/jb/usr/local/lib/codex/*.MISSING
+# placeholder files for instructions.
+codex-ios/var/jb/usr/local/lib/codex/codex-ios
+codex-ios/var/jb/usr/local/lib/codex/codex-ios.bin
+codex-ios/var/jb/usr/local/lib/codex/node
+codex-ios/var/jb/usr/local/lib/codex/node.bin
+
+# Built deb artifacts.
+*.deb
+*.deb.tmp
+
+# Extracted deb directories (build scratch, never commit).
+com.openai.codex-ios_*/
+
+# Theos build output from prefs-bundle/.
+prefs-bundle/.theos/
+prefs-bundle/obj/
+prefs-bundle/_/
+prefs-bundle/build/
+prefs-bundle/packages/
+prefs-bundle/*.deb
+
+# Editor / OS junk.
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
+
+
+# Keep the repo icon PNGs that ARE part of the package (override the broad
+# *.jpg / *.PNG rules above) — these are tracked explicitly.
+!codex-ios/var/jb/Library/PreferenceLoader/Preferences/codex.png
+!codex-ios/var/jb/Library/PreferenceLoader/Preferences/codex@2x.png
+!codex-ios/var/jb/Library/PreferenceLoader/Preferences/codex@3x.png
+!codex-ios/var/jb/Library/MobileSubstrate/Icons/codex-sileo.png

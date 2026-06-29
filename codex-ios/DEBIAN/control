@@ -1,0 +1,24 @@
+Package: com.openai.codex-ios
+Name: Codex CLI (iOS)
+Version: 0.142.3
+Section: Development
+Architecture: iphoneos-arm64
+Author: tg@xauszulay
+Maintainer: tg@xauszulay
+Conflicts: com.openai.codex
+Replaces: com.openai.codex
+Depends: preferenceloader
+Priority: optional
+Installed-Size: 272036
+Description: Unofficial iOS jailbreak port of OpenAI Codex CLI — local coding agent (Rust TUI).
+ Repackaged for jailbroken iOS (Dopamine / Procursus) by tg@xauszulay. This is NOT an official
+ OpenAI build; the upstream Codex CLI (github.com/openai/codex, Apache-2.0) is cross-compiled to
+ aarch64-apple-ios and dropped into a self-contained, PATH-independent install under
+ /var/jb/usr/local/lib/codex with a wrapper at /var/jb/usr/local/bin/codex. A bundled Node
+ runtime (arm64-ios) is included only for the auth helper and the optional JS launcher fallback.
+ Adds the `codex` command to NewTerm 3 / zsh with no extra configuration.
+ Includes a Settings.app pane (PreferenceLoader) to pick the model, sandbox, approval policy,
+ web search, fast mode, memories and log level, plus action buttons (open config/logs, reset
+ auth, run diagnostics) without editing config.toml.
+Homepage: https://github.com/xauszulay/codex-ios
+Icon: https://raw.githubusercontent.com/lobehub/lobe-icons/refs/heads/master/packages/static-png/light/codex-color.png

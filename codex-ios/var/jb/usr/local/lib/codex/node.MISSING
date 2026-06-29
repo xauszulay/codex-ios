@@ -1,0 +1,24 @@
+This file is a placeholder. The real ~70 MB bundled Node 22 arm64-ios
+binary is NOT in git — it exceeds GitHub's 100 MB file cap and is a
+redistributable build artifact, not source.
+
+Drop the built binary in here as `node` (next to this file) before
+running ../build-deb.sh. Node is used ONLY by the `codex-auth` helper
+and the optional JS launcher fallback — the Codex engine itself is a
+native Rust binary and does not need Node.
+
+How to get the binary:
+
+  1. Copy it from the existing Claude Code iOS bundle (simplest — it is
+     already a working iOS arm64 Node, and codex-auth only needs >=16):
+       cp /var/jb/usr/local/lib/claude-code/node \
+          <repo>/codex-ios/var/jb/usr/local/lib/codex/node
+       chmod 0755 <repo>/codex-ios/var/jb/usr/local/lib/codex/node
+
+  2. Or build a true Node 22 arm64-ios from github.com/nicklama/node-ios,
+     or use the Procursus `node` package.
+
+build-deb.sh will also auto-copy from /var/jb/usr/local/lib/claude-code/node
+if present at build time, so you may not need to do anything.
+
+build-deb.sh strips this *.MISSING file from the deb copy automatically.

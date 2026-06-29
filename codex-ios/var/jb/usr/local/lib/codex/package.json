@@ -1,0 +1,8 @@
+{
+  "name": "codex-ios-launcher",
+  "version": "0.142.3",
+  "private": true,
+  "bin": {
+    "codex": "launcher.mjs"
+  }
+}

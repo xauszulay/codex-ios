@@ -1,0 +1,24 @@
+This file is a placeholder. The real ~200 MB native Codex engine
+(aarch64-apple-ios Rust binary) is NOT in git — it exceeds GitHub's
+100 MB file cap and is a redistributable build artifact, not source.
+
+Drop the built binary in here as `codex-ios` (next to this file) before
+running ../build-deb.sh.
+
+How to get the binary:
+
+  1. Build it on a Mac (see the repo README, §Build the native engine):
+       git clone https://github.com/openai/codex.git
+       cd codex/codex-rs && git checkout rust-v0.142.3
+       cargo build --release --target aarch64-apple-ios --bin codex
+       ldid -S<repo>/codex-ios/var/jb/usr/local/lib/codex/entitlements.xml \
+         target/aarch64-apple-ios/release/codex
+       cp target/aarch64-apple-ios/release/codex \
+         <repo>/codex-ios/var/jb/usr/local/lib/codex/codex-ios
+
+  2. Or copy it from an existing on-device install:
+       cp /var/jb/usr/local/lib/codex/codex-ios \
+          <repo>/codex-ios/var/jb/usr/local/lib/codex/codex-ios
+       chmod 0755 <repo>/codex-ios/var/jb/usr/local/lib/codex/codex-ios
+
+build-deb.sh strips this *.MISSING file from the deb copy automatically.

@@ -1,0 +1,9 @@
+Package: com.openai.codex-ios.prefsbundle
+Name: CodexPrefs (build-only)
+Version: 0.142.3
+Architecture: iphoneos-arm64
+Description: Build-only Theos project that produces CodexPrefs.bundle for the Codex CLI iOS Settings.app pane. Not distributed on its own.
+Maintainer: tg@xauszulay
+Author: tg@xauszulay
+Section: Development
+Depends: preferenceloader

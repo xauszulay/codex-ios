@@ -1,0 +1,29 @@
+#!/var/jb/bin/sh
+# prerm — Codex CLI for iOS (Procursus / Dopamine)
+# Runs before the package is removed from the rootfs.
+
+set -e
+
+CODEX_HOME="/var/jb/usr/local/lib/codex"
+BIN_LINK="/var/jb/usr/local/bin/codex"
+AUTH_LINK="/var/jb/usr/local/bin/codex-auth"
+
+# 1. Kill any running Codex TUI / app-server processes so removal is clean.
+if command -v pkill >/dev/null 2>&1; then
+    pkill -f "$CODEX_HOME/codex-ios" 2>/dev/null || true
+fi
+
+# 2. Remove the wrapper symlinks/scripts if they still point at us.
+for f in "$BIN_LINK" "$AUTH_LINK"; do
+    if [ -L "$f" ]; then
+        rm -f "$f"
+    elif [ -f "$f" ] && head -n 1 "$f" 2>/dev/null | grep -q "Codex CLI for iOS"; then
+        rm -f "$f"
+    fi
+done
+
+# 3. Leave ~/.codex (config / auth / sessions) in place on remove so a
+#    reinstall does not lose login. Use --purge / dpkg --purge to wipe it.
+echo "Codex CLI removed. Config kept at ~/.codex (remove manually if desired)."
+
+exit 0
